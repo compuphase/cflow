@@ -1,11 +1,11 @@
 /* This file is part of GNU cflow
    Copyright (C) 1997-2022 Sergey Poznyakoff
- 
+
    GNU cflow is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 3 of the License, or
    (at your option) any later version.
- 
+
    GNU cflow is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -43,7 +43,7 @@ int dirdcl(Ident*);
 void skip_struct();
 Symbol *get_symbol(char *name);
 void maybe_parm_list(int *parm_cnt_return);
-    
+
 void call(char*, int);
 void reference(char*, int);
 
@@ -80,7 +80,7 @@ print_token(TOKSTK *tokptr)
      switch (tokptr->type) {
      case IDENTIFIER:
      case TYPE:
-     case WORD:
+     case SYMBOL:
      case MODIFIER:
      case STRUCT:
      case PARM_WRAPPER:
@@ -120,7 +120,7 @@ token_type_str(int t)
      switch (t) {
      case 0:
 	  return "EOF";
-     case WORD:
+     case SYMBOL:
 	  return "WORD";
      case LBRACE0:
 	  return "'{'";
@@ -158,7 +158,7 @@ token_type_str(int t)
 	  return "PARM_WRAPPER";
      case QUALIFIER:
 	  return "QUALIFIER";
-     }	  
+     }
      if (isprint(t))
 	  snprintf(buf, sizeof(buf), "'%c'(%d)", t, t);
      else
@@ -183,7 +183,7 @@ debugtoken(TOKSTK *t, char *fmt, ...)
      if (debug > 1) {
 	  va_list ap;
 	  int i;
-	  
+
 	  if (fmt) {
 	       va_start(ap, fmt);
 	       vfprintf(stderr, fmt, ap);
@@ -275,7 +275,7 @@ cleanup_stack()
 {
      int delta = tos - curs;
 
-     if (delta > 0) 
+     if (delta > 0)
 	  memmove(token_stack, token_stack+curs, delta*sizeof(token_stack[0]));
      else if (delta < 0) /* Invalid input */
 	  delta = 0;
@@ -293,7 +293,7 @@ int
 nexttoken()
 {
      int type;
-     
+
      if (curs == tos) {
 	  type = get_token();
 	  tokpush(type, line_num, yylval.str);
@@ -333,24 +333,24 @@ void
 save_token(TOKSTK *tokptr)
 {
      int len;
-    
+
      switch (tokptr->type) {
      case IDENTIFIER:
      case TYPE:
      case STRUCT:
      case PARM_WRAPPER:
-     case WORD:
+     case SYMBOL:
      case QUALIFIER:
-	  if (need_space) 
+	  if (need_space)
 	       obstack_1grow(&text_stk, ' ');
 	  len = strlen(tokptr->token);
 	  obstack_grow(&text_stk, tokptr->token, len);
 	  need_space = 1;
 	  break;
      case MODIFIER:
-	  if (need_space) 
+	  if (need_space)
 	       obstack_1grow(&text_stk, ' ');
-	  if (tokptr->token[0] == '*') 
+	  if (tokptr->token[0] == '*')
 	       need_space = 0;
 	  else
 	       need_space = 1;
@@ -365,7 +365,7 @@ save_token(TOKSTK *tokptr)
 	  need_space = 1;
 	  break;
      case '(':
-	  if (need_space) 
+	  if (need_space)
 	       obstack_1grow(&text_stk, ' ');
 	  obstack_1grow(&text_stk, tokptr->type);
 	  need_space = 0;
@@ -381,14 +381,14 @@ save_token(TOKSTK *tokptr)
 	  break;
      case LBRACE:
      case LBRACE0:
-	  if (need_space) 
+	  if (need_space)
 	       obstack_1grow(&text_stk, ' ');
 	  obstack_1grow(&text_stk, '{');
 	  need_space = 1;
 	  break;
      case RBRACE:
      case RBRACE0:
-	  if (need_space) 
+	  if (need_space)
 	       obstack_1grow(&text_stk, ' ');
 	  obstack_1grow(&text_stk, '}');
 	  need_space = 1;
@@ -425,7 +425,7 @@ save_stack_is_empty()
 {
      return save_end <= 0;
 }
-	  
+
 char *
 finish_save_stack(char *name)
 {
@@ -445,7 +445,7 @@ finish_save_stack(char *name)
 	       }
 	       break;
 	  case ')':
-	       if (omit_arguments_option) 
+	       if (omit_arguments_option)
 		    level--;
 	       break;
 	  case IDENTIFIER:
@@ -485,15 +485,15 @@ skip_balanced(int open_tok, int close_tok, int level)
 	       tok.type = '{';
 	  else if (tok.type == RBRACE0 && close_tok == '}')
 	       tok.type = '}';
-	  
-	  if (tok.type == open_tok) 
+
+	  if (tok.type == open_tok)
 	       level++;
 	  else if (tok.type == close_tok) {
 	       if (--level == 0) {
 		    nexttoken();
 		    return 0;
 	       }
-	  } 
+	  }
      }
      return -1;
 }
@@ -566,7 +566,7 @@ is_function()
 	  }
 	  break;
      }
-     
+
      restore(sp);
      return res;
 }
@@ -574,7 +574,7 @@ is_function()
 void
 parse_declaration(Ident *ident, int parm)
 {
-     if (is_function()) 
+     if (is_function())
 	  parse_function_declaration(ident, parm);
      else
 	  parse_variable_declaration(ident, parm);
@@ -617,7 +617,7 @@ expression()
 		    file_error(_("unexpected end of file in expression"),
 			       NULL);
 	       return;
-	    
+
 	  case IDENTIFIER:
 	       name = tok.token;
 	       line = tok.line;
@@ -688,15 +688,15 @@ parse_function_declaration(Ident *ident, int parm)
 	       break;
 	  /*FALLTHROUGH*/
      default:
-	  if (error_recovery) 
+	  if (error_recovery)
 	       nexttoken();
 	  else {
-	       if (verbose) 
+	       if (verbose)
 		    file_error(_("expected `;'"), &tok);
 	       error_recovery = 1;
 	  }
 	  goto restart;
-	  
+
      case ';':
      case ',':
 	  break;
@@ -741,7 +741,7 @@ void
 parse_variable_declaration(Ident *ident, int parm)
 {
      Stackpos sp;
-     
+
      mark(sp);
      ident->type_end = -1;
      if (tok.type == STRUCT || tok.type == UNION) {
@@ -769,15 +769,15 @@ parse_variable_declaration(Ident *ident, int parm)
      }
  again:
      parse_dcl(ident, 0);
-     
- select:    
+
+ select:
      switch (tok.type) {
      case ')':
 	  if (parm)
 	       break;
 	  /*FALLTHROUGH*/
      default:
-	  if (verbose) 
+	  if (verbose)
 	       file_error(_("expected `;'"), &tok);
 	  /* FIXME: should putback() here */
 	  /* FALLTHRU */
@@ -841,7 +841,7 @@ void
 parse_knr_dcl(Ident *ident)
 {
      ident->type_end = -1;
-     parse_dcl(ident, !strict_ansi);     
+     parse_dcl(ident, !strict_ansi);
 }
 
 void
@@ -851,7 +851,7 @@ skip_struct()
 	  nexttoken();
      } else if (tok.type == ';')
 	  return;
-     
+
      if (tok.type == LBRACE || tok.type == LBRACE0) {
 	  if (skip_balanced('{', '}', 1) == -1) {
 	       file_error(_("unexpected end of file in struct"), NULL);
@@ -871,19 +871,19 @@ void
 parse_typedef()
 {
      Ident ident;
-     
+
      ident.name = NULL;
      ident.type_end = -1;
      ident.parmcnt = -1;
      ident.line = -1;
      ident.storage = AnyStorage;
-     
+
      nexttoken();
      if (!fake_struct(&ident))
 	  putback();
-     
+
      dcl(&ident);
-     if (ident.name) 
+     if (ident.name)
 	  declare_type(&ident);
 }
 
@@ -897,7 +897,7 @@ parse_dcl(Ident *ident, int maybe_knr)
      save_stack();
      if (ident->name)
 	  declare(ident, maybe_knr);
-     else 
+     else
 	  undo_save_stack();
 }
 
@@ -914,10 +914,10 @@ dcl(Ident *idptr)
 			       NULL);
 		    return 1;
 	       }
-	       putback();	       
+	       putback();
 	  } else if (tok.type == IDENTIFIER) {
 	       int type;
-	       
+
 	       while (tok.type == IDENTIFIER)
 		    nexttoken();
 	       type = tok.type;
@@ -939,7 +939,7 @@ dirdcl(Ident *idptr)
 {
      int wrapper = 0;
      int *parm_ptr = NULL;
-     
+
      if (tok.type == '(') {
 	  dcl(idptr);
 	  if (tok.type != ')' && verbose) {
@@ -953,7 +953,7 @@ dirdcl(Ident *idptr)
 	       parm_ptr = &idptr->parmcnt;
 	  }
      }
-     
+
      if (nexttoken() == PARM_WRAPPER) {
 	  wrapper = 1;
 	  nexttoken(); /* read '(' */
@@ -961,7 +961,7 @@ dirdcl(Ident *idptr)
 	  putback();
 
      while (nexttoken() == '[' || tok.type == '(') {
-	  if (tok.type == '[') 
+	  if (tok.type == '[')
 	       skip_to(']');
 	  else {
 	       maybe_parm_list(parm_ptr);
@@ -979,7 +979,7 @@ dirdcl(Ident *idptr)
 	       file_error(_("unexpected end of file in function declaration"),
 			  NULL);
      }
-     
+
      return 0;
 }
 
@@ -997,9 +997,9 @@ parmdcl(Ident *idptr)
 		    nexttoken();
 	       type = tok.type;
 	       putback();
-	       if (type != MODIFIER) 
+	       if (type != MODIFIER)
 		    break;
-	  } else if (tok.type == ')' || tok.type == ',') 
+	  } else if (tok.type == ')' || tok.type == ',')
 	       return 0;
      }
      if (idptr && idptr->type_end == -1)
@@ -1042,7 +1042,7 @@ maybe_parm_list(int *parm_cnt_return)
 			       &tok);
 	       level = 0;
 	       do {
-		    if (tok.type == '(') 
+		    if (tok.type == '(')
 			 level++;
 		    else if (tok.type == ')') {
 			 if (level-- == 0)
@@ -1061,7 +1061,7 @@ void
 func_body()
 {
      Ident ident;
-     
+
      level++;
      move_parms(level);
      while (level) {
@@ -1128,10 +1128,10 @@ get_knr_args(Ident *ident)
      case TYPE:
      case STRUCT:
 	  /* maybe K&R function definition */
-	  
+
 	  mark(sp);
 	  parmcnt = 0;
-	  
+
 	  for (stop = 0; !stop && parmcnt < ident->parmcnt;
 	       nexttoken()) {
 	       id.type_end = -1;
@@ -1174,7 +1174,7 @@ void
 declare(Ident *ident, int maybe_knr)
 {
      Symbol *sp;
-     
+
      if (ident->storage == AutoStorage) {
 	  undo_save_stack();
 	  sp = install_ident(ident->name, ident->storage);
@@ -1185,7 +1185,7 @@ declare(Ident *ident, int maybe_knr)
 	       sp->level = level;
 	  sp->arity = -1;
 	  return;
-     } 
+     }
 
      if ((ident->parmcnt >= 0
 	  && (!maybe_knr || get_knr_args(ident) == 0)
@@ -1197,7 +1197,7 @@ declare(Ident *ident, int maybe_knr)
 	  /* add_external()?? */
 	  return;
      }
-     
+
      sp = get_symbol(ident->name);
      if (sp->source) {
 	  if (ident->storage == StaticStorage
@@ -1205,11 +1205,11 @@ declare(Ident *ident, int maybe_knr)
 	       sp = install_ident(ident->name, ident->storage);
 	  } else {
 	       if (sp->arity >= 0)
-		    error_at_line(0, 0, filename, ident->line, 
+		    error_at_line(0, 0, filename, ident->line,
 				  _("%s/%d redefined"),
 				  ident->name, sp->arity);
 	       else
-		    error_at_line(0, 0, filename, ident->line, 
+		    error_at_line(0, 0, filename, ident->line,
 				  _("%s redefined"),
 				  ident->name);
 	       error_at_line(0, 0, sp->source, sp->def_line,
@@ -1219,7 +1219,7 @@ declare(Ident *ident, int maybe_knr)
 
      sp->type = SymIdentifier;
      sp->arity = ident->parmcnt;
-     ident_change_storage(sp, 
+     ident_change_storage(sp,
 			  (ident->storage == ExplicitExternStorage) ?
 			  ExternStorage : ident->storage);
      sp->decl = finish_save_stack(ident->name);
@@ -1238,7 +1238,7 @@ void
 declare_type(Ident *ident)
 {
      Symbol *sp;
-     
+
      undo_save_stack();
      sp = lookup(ident->name);
      for ( ; sp; sp = sp->next)
@@ -1260,7 +1260,7 @@ Symbol *
 get_symbol(char *name)
 {
      Symbol *sp = lookup(name) ;
-     
+
      if (sp) {
 	  for (; sp; sp = sp->next) {
 	       if (sp->flag == symbol_start ||

@@ -1,11 +1,11 @@
 /* This file is part of GNU cflow
    Copyright (C) 1997-2022 Sergey Poznyakoff
- 
+
    GNU cflow is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 3 of the License, or
    (at your option) any later version.
- 
+
    GNU cflow is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -80,9 +80,9 @@ static struct argp_option options[] = {
      {"  t",  0, NULL, OPTION_DOC|OPTION_NO_TRANS,
       N_("typedefs (for cross-references only)"), GROUP_ID+3 },
 
-     
+
 #undef GROUP_ID
-#define GROUP_ID 10     
+#define GROUP_ID 10
      { NULL, 0, NULL, 0,
        N_("Parser control:"), GROUP_ID },
      { "use-indentation", 'S', NULL, 0,
@@ -111,7 +111,7 @@ static struct argp_option options[] = {
        N_("disable preprocessor"), GROUP_ID+1 },
      { "no-cpp", 0, NULL, OPTION_ALIAS, NULL, GROUP_ID+1 },
 #undef GROUP_ID
-#define GROUP_ID 20          
+#define GROUP_ID 20
      { NULL, 0, NULL, 0,
        N_("Output control:"), GROUP_ID },
      { "all", 'A', NULL, 0,
@@ -159,7 +159,7 @@ static struct argp_option options[] = {
        N_("show only graphs leading from start symbols to this function; multiple options are allowed"),
        GROUP_ID+1 },
 #undef GROUP_ID
-#define GROUP_ID 30                 
+#define GROUP_ID 30
      { NULL, 0, NULL, 0,
        N_("Informational options:"), GROUP_ID },
      { "verbose", 'v', NULL, 0,
@@ -168,7 +168,7 @@ static struct argp_option options[] = {
        N_("disable verbose diagnostics (default)"), GROUP_ID+1 },
      { "debug", OPT_DEBUG, "NUMBER", OPTION_ARG_OPTIONAL,
        N_("set debugging level"), GROUP_ID+1 },
-#undef GROUP_ID     
+#undef GROUP_ID
      {"help",        '?',          0, OPTION_HIDDEN,  N_("give this help list"), -1},
      { 0, }
 };
@@ -196,7 +196,7 @@ int print_as_tree;      /* Print as tree */
 int brief_listing;      /* Produce short listing */
 int reverse_tree;       /* Generate reverse tree */
 int max_depth;          /* The depth at which the flowgraph is cut off */
-int emacs_option;       /* Format and check for use with Emacs cflow-mode */ 
+int emacs_option;       /* Format and check for use with Emacs cflow-mode */
 int omit_arguments_option;    /* Omit arguments from function declaration string */
 int omit_symbol_names_option; /* Omit symbol name from symbol declaration string */
 
@@ -226,7 +226,7 @@ char *level_begin = "";
 
 int preprocess_option = 0; /* Do they want to preprocess sources? */
 
-int all_functions;  
+int all_functions;
 struct linked_list *arglist;        /* List of command line arguments */
 
 /* Given the option_type array and (possibly abbreviated) option argument
@@ -249,8 +249,8 @@ find_option_type(struct option_type *optype, const char *str, int len)
 
 /* Args for --symbol option */
 static struct option_type symbol_optype[] = {
-     { "keyword", 2, WORD },
-     { "kw", 2, WORD },
+     { "keyword", 2, SYMBOL },
+     { "kw", 2, SYMBOL },
      { "modifier", 1, MODIFIER },
      { "identifier", 1, IDENTIFIER },
      { "type", 1, TYPE },
@@ -269,7 +269,7 @@ symbol_override(const char *str)
      const char *ptr;
      char *name;
      Symbol *sp;
-     
+
      ptr = strchr(str, ':');
      if (!ptr)
 	  error(EX_USAGE, 0, _("%s: no symbol type supplied"), str);
@@ -284,7 +284,7 @@ symbol_override(const char *str)
 	       if (strcmp(name, ptr) == 0) {
 		    error(EX_USAGE, 0, _("cyclic alias: %s -> %s"), name, ptr);
 	       }
-	       
+
 	       alias = lookup(ptr);
 	       if (alias) {
 		    if (strcmp(alias->name, name) == 0) {
@@ -328,7 +328,7 @@ number(const char **str_ptr, int base, int count)
      int  c, n;
      unsigned i;
      const char *str = *str_ptr;
-     
+
      for (n = 0; *str && count; count--) {
 	  c = *str++;
 	  if (isdigit(c))
@@ -353,7 +353,7 @@ number(const char **str_ptr, int base, int count)
  *    KEYWORD is one of "begin", "0", ", "1", "end0", "end1",
  *    or an abbreviation thereof,
  *    STR is the value to be assigned to the parameter.
- *  
+ *
  * STR can contain usual C escape sequences plus \e meaning '\033'.
  * Apart from this any character followed by xN suffix (where N is
  * a decimal number) is expanded to the sequence of N such characters.
@@ -381,11 +381,11 @@ parse_level_string(const char *str, char **return_ptr)
      static char text[MAXLEVELINDENT];
      char *p;
      int i, c, num;
-    
+
      p = text;
      memset(text, ' ', sizeof(text));
      text[sizeof(text)-1] = 0;
-     
+
      while (*str) {
 	  switch (*str) {
 	  case '\\':
@@ -455,7 +455,7 @@ set_level_indent(const char *str)
      long n;
      const char *p;
      char *q;
-     
+
      n = strtol(str, &q, 0);
      if (*q == 0 && n > 0) {
 	  char *s = xmalloc(n+1);
@@ -464,7 +464,7 @@ set_level_indent(const char *str)
 	  level_indent[0] = level_indent[1] = s;
 	  return;
      }
-     
+
      p = str;
      while (*p != '=') {
 	  if (*p == 0)
@@ -472,7 +472,7 @@ set_level_indent(const char *str)
 	  p++;
      }
      ++p;
-    
+
      switch (find_option_type(level_indent_optype, str, p - str - 1)) {
      case LEVEL_BEGIN:
 	  parse_level_string(p, &level_begin);
@@ -540,7 +540,7 @@ cflow_help(struct argp_state *state)
 
      printf ("\n%s\n", _("References:"));
      printf (" [1]   https://www.gnu.org/software/cflow/manual/html_section/ASCII-Tree.html\n");
-     
+
      /* Emit bug-reporting address and exit. */
      emit_bug_reporting_address ();
      exit (0);
@@ -550,7 +550,7 @@ static error_t
 parse_opt (int key, char *arg, struct argp_state *state)
 {
      int num;
-     
+
      switch (key) {
      case 'A':
 	  all_functions++;
@@ -609,7 +609,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
 	  break;
      case 'i':
 	  num = 1;
-	  for (; *arg; arg++) 
+	  for (; *arg; arg++)
 	       switch (*arg) {
 	       case '-':
 	       case '^':
@@ -737,13 +737,13 @@ int
 include_symbol(Symbol *sym)
 {
      int type = 0;
-     
+
      if (!sym)
 	  return 0;
 
      if (sym->visible != output_visible)
 	  return 0;
-     
+
      if (sym->type == SymIdentifier) {
 	  if (sym->name[0] == '_' && !(symbol_map & SM_UNDERSCORE))
 	       return 0;
@@ -757,7 +757,7 @@ include_symbol(Symbol *sym)
 
 	  if (!sym->source)
 	       type |= SM_UNDEFINED;
-	  
+
      } else if (sym->type == SymToken) {
 	  if (sym->token_type == TYPE && sym->source)
 	       type |= SM_TYPEDEF;
@@ -777,7 +777,7 @@ xalloc_die(void)
 void
 init()
 {
-     if (level_indent[0] == NULL) 
+     if (level_indent[0] == NULL)
 	  level_indent[0] = "    "; /* 4 spaces */
      if (level_indent[1] == NULL)
 	  level_indent[1] = level_indent[0];
@@ -785,7 +785,7 @@ init()
 	  level_end[0] = "";
      if (level_end[1] == NULL)
 	  level_end[1] = "";
-     
+
      init_lex(debug > 2);
      init_parse();
 }
@@ -801,14 +801,14 @@ main(int argc, char **argv)
 {
      int index;
      int status = EX_OK;
-     
+
      set_program_name(argv[0]);
      argp_version_setup("cflow", program_authors);
-     
+
      setlocale(LC_ALL, "");
      bindtextdomain(PACKAGE, LOCALEDIR);
      textdomain(PACKAGE);
-     
+
      register_output("gnu", gnu_output_handler, NULL);
      register_output("posix", posix_output_handler, NULL);
      register_output("dot", dot_output_handler, NULL);
@@ -823,14 +823,14 @@ main(int argc, char **argv)
 	  }
 	  output_init();
      }
-     
+
      sourcerc(&argc, &argv);
      if (argp_parse(&argp, argc, argv, ARGP_IN_ORDER, &index, NULL))
 	  exit(EX_USAGE);
 
      if (!no_main_option)
 	  set_default_starter();
-     
+
      if (print_option == 0)
 	  print_option = PRINT_TREE;
 
@@ -855,7 +855,7 @@ main(int argc, char **argv)
 		    yyparse();
 	  }
      }
-     
+
      argc -= index;
      argv += index;
 

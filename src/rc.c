@@ -16,67 +16,76 @@
 
 #include <cflow.h>
 #include <parser.h>
+#include <assert.h>
 #include <sys/stat.h>
 #include <ctype.h>
 #include <wordsplit.h>
 
-#ifndef LOCAL_RC
-# define LOCAL_RC ".cflowrc"
+#if (defined __MINGW32__ || defined __CYGWIN__) && !defined _WIN32
+  #define _WIN32
+#endif
+#if defined _WIN32 || defined __WIN32 || defined __WIN32__
+  #include <windows.h>
+  #define DIRSEP_CHAR '\\'
+#else
+  #define DIRSEP_CHAR '/'
 #endif
 
-static void
-expand_argcv(int *argc_ptr, char ***argv_ptr, int argc, char **argv)
+#ifndef LOCAL_RC
+  #define LOCAL_RC ".cflowrc"
+#endif
+
+static void expand_argcv(int *argc_ptr, char ***argv_ptr, int argc, char **argv)
 {
-     int i;
-     
-     *argv_ptr = xrealloc(*argv_ptr,
-			  (*argc_ptr + argc + 1) * sizeof **argv_ptr);
-     for (i = 0; i < argc; i++)
-	  (*argv_ptr)[*argc_ptr + i] = xstrdup(argv[i]);
-     (*argv_ptr)[*argc_ptr + i] = NULL;
-     *argc_ptr += argc;
+  int i;
+
+  *argv_ptr = xrealloc(*argv_ptr,
+                       (*argc_ptr + argc + 1)* sizeof**argv_ptr);
+  for (i = 0; i < argc; i++)
+    (*argv_ptr)[*argc_ptr + i]= xstrdup(argv[i]);
+  (*argv_ptr)[*argc_ptr + i]= NULL;
+  *argc_ptr += argc;
 }
 
 /* Parse rc file
  */
-void
-parse_rc(int *argc_ptr, char ***argv_ptr, char *name)
+void parse_rc(int *argc_ptr, char ***argv_ptr, char *name)
 {
-     struct stat st;
-     FILE *rcfile;
-     int size;
-     char *buf, *p;
-     struct wordsplit ws;
-     int wsflags;
-     int line;
-     
-     if (stat(name, &st))
-	  return;
-     buf = xmalloc(st.st_size+1);
-     rcfile = fopen(name, "r");
-     if (!rcfile) {
-	  error(EX_FATAL, errno, _("cannot open `%s'"), name);
-	  return;
-     }
-     size = fread(buf, 1, st.st_size, rcfile);
-     buf[size] = 0;
-     fclose(rcfile);
+  struct stat st;
+  FILE *rcfile;
+  int size;
+  char *buf, *p;
+  struct wordsplit ws;
+  int wsflags;
+  int line;
 
-     ws.ws_comment = "#";
-     wsflags = WRDSF_DEFFLAGS | WRDSF_COMMENT;
-     line = 0;
-     for (p = strtok(buf, "\n"); p; p = strtok(NULL, "\n")) {
-	  ++line;
-	  if (wordsplit(p, &ws, wsflags))
-	       error(EX_FATAL, 0, "%s:%d: %s",
-		     name, line, wordsplit_strerror(&ws));
-	  wsflags |= WRDSF_REUSE;
-	  if (ws.ws_wordc)
-	       expand_argcv(argc_ptr, argv_ptr, ws.ws_wordc, ws.ws_wordv);
-     }
-     if (wsflags & WRDSF_REUSE)
-	  wordsplit_free(&ws);
-     free(buf);
+  if (stat(name, &st))
+    return;
+  buf = xmalloc(st.st_size+1);
+  rcfile = fopen(name, "r");
+  if (!rcfile) {
+    error(EX_FATAL, errno, _("cannot open `%s'"), name);
+    return;
+  }
+  size = fread(buf, 1, st.st_size, rcfile);
+  buf[size]= 0;
+  fclose(rcfile);
+
+  ws.ws_comment = "#";
+  wsflags = WRDSF_DEFFLAGS | WRDSF_COMMENT;
+  line = 0;
+  for (p = strtok(buf, "\n"); p; p = strtok(NULL, "\n")) {
+    ++line;
+    if (wordsplit(p, &ws, wsflags))
+      error(EX_FATAL, 0, "%s:%d: %s",
+            name, line, wordsplit_strerror(&ws));
+    wsflags |= WRDSF_REUSE;
+    if (ws.ws_wordc)
+      expand_argcv(argc_ptr, argv_ptr, ws.ws_wordc, ws.ws_wordv);
+  }
+  if (wsflags & WRDSF_REUSE)
+    wordsplit_free(&ws);
+  free(buf);
 }
 
 /* Process the value of the environment variable CFLOW_OPTIONS
@@ -85,58 +94,65 @@ parse_rc(int *argc_ptr, char ***argv_ptr, char *name)
  * (*ARGV_PTR[1]) modifying *ARGC_PTR accordingly.
  * NOTE: Since sourcerc() is not meant to take all SH command line processing
  *       burden, only word splitting is performed and no kind of expansion
- *       takes place. 
+ *       takes place.
  */
-void
-sourcerc(int *argc_ptr, char ***argv_ptr)
+void sourcerc(int *argc_ptr, char ***argv_ptr)
 {
-     char *env;
-     int xargc = 1;
-     char **xargv; 
+  char *env;
+  int xargc = 1;
+  char **xargv;
 
-     xargv = xmalloc(2*sizeof *xargv);
-     xargv[0] = **argv_ptr;
-     xargv[1] = NULL;
-     
-     env = getenv("CFLOW_OPTIONS");
-     if (env) {
-	  struct wordsplit ws;
+  xargv = xmalloc(2*sizeof*xargv);
+  xargv[0]=**argv_ptr;
+  xargv[1]= NULL;
 
-	  ws.ws_comment = "#";
-	  if (wordsplit(env, &ws, WRDSF_DEFFLAGS | WRDSF_COMMENT))
-	       error(EX_FATAL, 0, "failed to parse CFLOW_OPTIONS: %s",
-		     wordsplit_strerror(&ws));
-	  if (ws.ws_wordc)
-	       expand_argcv(&xargc, &xargv, ws.ws_wordc, ws.ws_wordv);
-	  wordsplit_free(&ws);
-     }
+  env = getenv("CFLOW_OPTIONS");
+  if (env) {
+    struct wordsplit ws;
 
-     env = getenv("CFLOWRC");
-     if (env) 
-	  parse_rc(&xargc, &xargv, env);
-     else {
-	  char *home = getenv("HOME");
-	  if (home) {
-	       int len = strlen(home);
-	       char *buf = malloc(len + sizeof(LOCAL_RC)
-				  + (home[len-1] != '/') );
-	       if (!buf)
-		    return;
-	       strcpy(buf, home);
-	       if (home[len-1] != '/')
-		    buf[len++] = '/';
-	       strcpy(buf+len, LOCAL_RC);
-	       parse_rc(&xargc, &xargv, buf);
-	       free(buf);
-	  }
-     }
-     
-     if (xargc > 1) {
-	  expand_argcv(&xargc, &xargv, *argc_ptr-1, *argv_ptr+1);
-	  *argc_ptr = xargc;
-	  *argv_ptr = xargv;
-     }
+    ws.ws_comment = "#";
+    if (wordsplit(env, &ws, WRDSF_DEFFLAGS | WRDSF_COMMENT))
+      error(EX_FATAL, 0, "failed to parse CFLOW_OPTIONS: %s",
+            wordsplit_strerror(&ws));
+    if (ws.ws_wordc)
+      expand_argcv(&xargc, &xargv, ws.ws_wordc, ws.ws_wordv);
+    wordsplit_free(&ws);
+  }
+
+  env = getenv("CFLOWRC");
+  if (env)
+    parse_rc(&xargc, &xargv, env);
+  else {
+    #if defined _WIN32 || defined __WIN32 || defined __WIN32__
+      char path[MAX_PATH], *dirsep;
+      GetModuleFileName(NULL, path, sizeof(path));
+      dirsep = strrchr(path, DIRSEP_CHAR);
+      assert(dirsep != NULL); /* full path is returned, so at least one '\' must be present */
+      *(dirsep + 1) = '\0';
+      if (strlen(path) + strlen(LOCAL_RC) < sizeof(path)) {
+        strcat(path, LOCAL_RC);
+        parse_rc(&xargc, &xargv, path);
+      }
+    #else
+      char *home = getenv("HOME");
+      if (home) {
+        int len = strlen(home);
+        char *buf = malloc(len + sizeof(LOCAL_RC) + (home[len-1] != DIRSEP_CHAR));
+        if (!buf)
+          return;
+        strcpy(buf, home);
+        if (home[len-1] != DIRSEP_CHAR)
+          buf[len++] = DIRSEP_CHAR;
+        strcpy(buf+len, LOCAL_RC);
+        parse_rc(&xargc, &xargv, buf);
+        free(buf);
+      }
+    #endif
+  }
+
+  if (xargc > 1) {
+    expand_argcv(&xargc, &xargv, *argc_ptr-1, *argv_ptr+1);
+    *argc_ptr = xargc;
+    *argv_ptr = xargv;
+  }
 }
-
-
-	

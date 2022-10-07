@@ -25,15 +25,15 @@
 %x stringwait
 %x longline
 %{
-     
+
 struct obstack string_stk;
 
 int line_num;
 char *filename;
-char *canonical_filename; 
+char *canonical_filename;
 YYSTYPE yylval;
 unsigned input_file_count; /* Number of input files, processed by source() */
- 
+
 int ident();
 void update_loc();
 #define lex_error(msg) error_at_line(0, 0, filename, line_num, "%s", msg)
@@ -50,7 +50,7 @@ HNUMBER (0[xX][0-9a-fA-F]*)
 DNUMBER ([1-9][0-9]*)
 DIGITS  [0-9][0-9]*
 IDENT [a-zA-Z_][a-zA-Z0-9_]*
-WS    [ \t\f\r]* 
+WS    [ \t\f\r]*
 %%
      /* comments */
 "//".*\n                ++line_num;
@@ -59,18 +59,18 @@ WS    [ \t\f\r]*
 <comment>[^*\n]*\n	++line_num;
 <comment>"*"+[^*/\n]*	;
 <comment>"*"+[^*/\n]*\n	++line_num;
-<comment>"*"+"/"	BEGIN(INITIAL); 
+<comment>"*"+"/"	BEGIN(INITIAL);
      /* Line directives */
 ^{WS}#{WS}line{WS}{DIGITS}.*\n |
 ^{WS}#{WS}{DIGITS}.*\n   { update_loc(); }
      /* skip any preproc */
 ^{WS}#.*\\\n             { BEGIN(longline); ++line_num; }
 {WS}#.*\n                ++line_num;
-<longline>.*\\\n         ++line_num; 
+<longline>.*\\\n         ++line_num;
 <longline>.*\n           { BEGIN(INITIAL); ++line_num; }
      /* keywords */
 auto                 /* ignored */;
-extern               return EXTERN; 
+extern               return EXTERN;
 static               return STATIC;
 typedef              return TYPEDEF;
 struct               {yylval.str = "struct"; return STRUCT;}
@@ -108,7 +108,7 @@ enum                 {yylval.str = "enum"; return STRUCT;}
 ">="                 {yylval.str = ">="; return OP;}
 ">"                  {yylval.str = ">"; return OP;}
 "<="                 {yylval.str = "<="; return OP;}
-"<"                  {yylval.str = "<"; return OP;}    
+"<"                  {yylval.str = "<"; return OP;}
 "<<"                 {yylval.str = "<<"; return OP;}
 ">>"                 {yylval.str = ">>"; return OP;}
 "++"                 {yylval.str = "++"; return OP;}
@@ -124,21 +124,21 @@ enum                 {yylval.str = "enum"; return STRUCT;}
 {IDENT}			return ident();
 {ONUMBER}               { obstack_grow(&string_stk, yytext, yyleng+1);
 			  yylval.str = obstack_finish(&string_stk);
-			  return WORD;
+			  return SYMBOL;
 		      }
 [+\-]?{DNUMBER}[^eE.]   { yyless(yyleng-1);
 			  obstack_grow(&string_stk, yytext, yyleng+1);
 			  yylval.str = obstack_finish(&string_stk);
-			  return WORD;}
-{HNUMBER} |               
+			  return SYMBOL;}
+{HNUMBER} |
 [+\-]?{DIGITS}?\.{DIGITS}([eE][+\-]?{DIGITS})? |
 [+\-]?{DIGITS}\.([eE][+\-]?{DIGITS})? {
     obstack_grow(&string_stk, yytext, yyleng+1);
     yylval.str = obstack_finish(&string_stk);
-    return WORD;
+    return SYMBOL;
 }
 
-      /* strings 
+      /* strings
       * State map:
       *
       * "<string>blahblahblah"<stringwait>
@@ -147,12 +147,12 @@ enum                 {yylval.str = "enum"; return STRUCT;}
       */
 \"    BEGIN(string);
 <string>[^\\"\n]*       ;
-<string>\n              { ++line_num; lex_error(_("unterminated string?")); } 
+<string>\n              { ++line_num; lex_error(_("unterminated string?")); }
 <string>\\.             ;
 <string>\\\n            ++line_num;
 <string>\"              BEGIN(stringwait);
 <stringwait>{WS}        ;
-<stringwait>\n          ++line_num; 
+<stringwait>\n          ++line_num;
 <stringwait>\"          BEGIN(string);
 <stringwait>.           {
      BEGIN(INITIAL);
@@ -208,13 +208,13 @@ init_tokens()
 {
      int i;
      Symbol *sp;
-    
+
      for (i = 0; i < NUMITEMS(keywords); i++) {
 	  sp = install(keywords[i], INSTALL_OVERWRITE);
 	  sp->type = SymToken;
-	  sp->token_type = WORD;
+	  sp->token_type = SYMBOL;
      }
-     
+
      for (i = 0; i < NUMITEMS(types); i++) {
 	  sp = install(types[i], INSTALL_OVERWRITE);
 	  sp->type = SymToken;
@@ -222,7 +222,7 @@ init_tokens()
 	  sp->source = NULL;
 	  sp->def_line = -1;
 	  sp->ref_line = NULL;
-     }	
+     }
 
      for (i = 0; i < NUMITEMS(qualifiers); i++) {
 	  sp = install(qualifiers[i], INSTALL_OVERWRITE);
@@ -231,14 +231,14 @@ init_tokens()
 	  sp->source = NULL;
 	  sp->def_line = -1;
 	  sp->ref_line = NULL;
-     }	
+     }
      sp = install("...", INSTALL_OVERWRITE);
      sp->type = SymToken;
      sp->token_type = IDENTIFIER;
      sp->source = NULL;
      sp->def_line = -1;
      sp->ref_line = NULL;
-}	
+}
 
 void
 init_lex(int debug_level)
@@ -320,7 +320,7 @@ pp_open(const char *name)
      FILE *fp;
      char *s;
      size_t size;
-     
+
      if (opt_stack)
 	  pp_finalize();
      size = strlen(pp_bin) + 1 + strlen(name) + 1;
@@ -433,27 +433,27 @@ getnum(unsigned  base, int  count)
 
 int
 backslash()
-{                                  
+{
      int c;
-     
-     switch (c = input()) {                        
-     case 'a':   return '\a';                  
-     case 'b':   return '\b';                  
-     case 'f':   return '\f';                  
-     case 'n':   return '\n';                  
-     case 'r':   return '\r';                  
-     case 't':   return '\t';                  
-     case 'x':   return getnum(16,2);          
-     case '0':   return getnum(8,3);           
-     }                                             
-     return c;                                         
-}                                                     
+
+     switch (c = input()) {
+     case 'a':   return '\a';
+     case 'b':   return '\b';
+     case 'f':   return '\f';
+     case 'n':   return '\n';
+     case 'r':   return '\r';
+     case 't':   return '\t';
+     case 'x':   return getnum(16,2);
+     case '0':   return getnum(8,3);
+     }
+     return c;
+}
 
 void
 update_loc()
 {
      char *p;
-     
+
      for (p = strchr(yytext, '#')+1; *p && isspace(*p); p++)
 	  ;
      if (p[0] == 'l') /* line */
@@ -464,7 +464,7 @@ update_loc()
 	  ;
      if (p[0] == '"') {
 	  int n;
-	  
+
 	  for (p++, n = 0; p[n] && p[n] != '"'; n++)
 	       ;
 	  obstack_grow(&string_stk, p, n);
@@ -474,4 +474,4 @@ update_loc()
      if (debug > 1)
 	  fprintf(stderr, _("New location: %s:%d\n"), filename, line_num);
 }
-          
+
